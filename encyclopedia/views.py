@@ -3,30 +3,12 @@ from django.core.files.storage import default_storage
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from . import util
-from django import forms
+from .forms import NewEditForm, NewPageForm, NewSearchEntryForm
 import markdown2
-
-def isMethodPost(request):
-    return (request.method == "POST")
-
-class NewSearchEntryForm(forms.Form):
-    searchEntry = forms.CharField(label="",widget=forms.TextInput(attrs={'placeholder': 'Search Encyclopedia'}))
-
-class NewPageForm(forms.Form):
-    pageTitle = forms.CharField(label="Title", widget=forms.TextInput(attrs={"class":"form-group"}))
-    markdownContent = forms.CharField(label="MarkDown Content", widget=forms.Textarea(attrs={"class":"form-group"}))
-
-class NewEditForm(forms.Form):
-    def __init__(self, title=""):
-        self.markdownContent = forms.CharField(label="MarkDown Content", widget=forms.Textarea(attrs={"class":"form-group", "value": util.get_entry(title)}))
-
-    
-
-
     
 
 def index(request):
-    if isMethodPost(request):
+    if util.isMethodPost(request):
         searchEntryForm = NewSearchEntryForm(request.POST)
         if searchEntryForm.is_valid():
             searchEntry = searchEntryForm.cleaned_data["searchEntry"]
@@ -50,37 +32,38 @@ def index(request):
         "searchEntryForm": NewSearchEntryForm()
     })
 
-def viewPage(request, title):
-    markdownContent = util.get_entry(title)
+def viewPage(request, pageTitle):
+    markdownContent = util.get_entry(pageTitle)
     if markdownContent == None:
         return render(request, 'encyclopedia/errorPage.html', {
-            "title" : title,
-            "errorMessage": f"/wiki/{title} Page Not Found",
+            "pageTitle" : pageTitle,
+            "errorMessage": f"/wiki/{pageTitle} Page Not Found",
             "searchEntryForm": NewSearchEntryForm()
         })
     else:
         html = markdown2.markdown(markdownContent)
         return render(request, 'encyclopedia/viewPage.html', {
             "html" : html, 
-            "title" : title,
+            "pageTitle" : pageTitle,
             "searchEntryForm": NewSearchEntryForm()
         })
     
 def createNewPage(request):
-    if(isMethodPost(request)):
+    if(util.isMethodPost(request)):
         newPageData = NewPageForm(request.POST)
         if newPageData.is_valid():
             pageTitle = newPageData.cleaned_data["pageTitle"]
             markdownContent = newPageData.cleaned_data["markdownContent"]
-            if(pageTitle in util.list_entries()):
-                return render(request, 'encyclopedia/errorPage.html', {
-                    "title" : pageTitle,
-                    "errorMessage": f"Page with title {pageTitle} already exists",
-                    "searchEntryForm": NewSearchEntryForm()
-                })
-            else:
+            if(util.isValidPageTitle(pageTitle)):
                 newPageFile = default_storage.open(f"entries/{pageTitle}.md", mode="w")
                 newPageFile.write(markdownContent)
+            else:
+                errorMessage = f"Page with title {pageTitle.lower()} already exists"
+                return render(request, 'encyclopedia/errorPage.html', {
+                    "pageTitle" : pageTitle,
+                    "errorMessage": errorMessage,
+                    "searchEntryForm": NewSearchEntryForm()
+                })
                 
     
     return render(request, 'encyclopedia/createNewPage.html',{
@@ -89,9 +72,21 @@ def createNewPage(request):
         "searchEntryForm": NewSearchEntryForm()
     })
 
-def editPage(request, title):
+def editPage(request, pageTitle):
+    if(util.isMethodPost(request)):
+        editFormData = NewEditForm(request.POST)
+        if(editFormData.is_valid()):
+            markdownContent = editFormData.cleaned_data["markdownContent"]
+            editPageFile = default_storage.open(f"entries/{pageTitle}.md", mode="w")
+            editPageFile.write(markdownContent)
+            return HttpResponseRedirect(reverse("encyclopedia:viewPage", args=(pageTitle, )))
+
     return render(request, "encyclopedia/editPage.html", {
-        "title":title,
-        "editPageForm": NewEditForm(title),
+        "pageTitle":pageTitle,
+        "editPageForm": NewEditForm(initial={"markdownContent":util.get_entry(pageTitle)}),
         "searchEntryForm": NewSearchEntryForm()
     })
+
+def randomPage(request):
+    pageTitle = util.getRandomPageTitle()
+    return HttpResponseRedirect(reverse("encyclopedia:viewPage", args=(pageTitle, )))

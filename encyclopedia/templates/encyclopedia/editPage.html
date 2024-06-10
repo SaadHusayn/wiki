@@ -1,5 +1,9 @@
 {% extends 'encyclopedia/layout.html' %}
 
+{% block title %}
+    {{pageTitle}} (Edit)
+{% endblock %}
+
 {% block style %}
 <style>
     body form div{
@@ -13,10 +17,10 @@
 
 
 {% block body %}
-<h1>{{title}}</h1>
-<form action="{% url 'encyclopedia:editPage' title %}" method="post">
+<h1>{{pageTitle}}</h1>
+<form action="{% url 'encyclopedia:editPage' pageTitle %}" method="post">
     {% csrf_token %}
-    {{editPageForm}}
+    {{editPageForm | safe}}
     <input type="submit" value="Save">
 </form>
 {% endblock %}

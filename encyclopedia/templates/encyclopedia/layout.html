@@ -14,7 +14,7 @@
     <body>
         <div class="row">
             <div class="sidebar col-lg-2 col-md-3">
-                <h2>Wiki</h2>
+                <h2><a href="{% url 'encyclopedia:index' %}" style="text-decoration: none; color: black;">Wiki</a></h2>
                 <form action="{% url 'encyclopedia:index' %}" method="post">
                     {% csrf_token %}
                     {{searchEntryForm}}
@@ -25,11 +25,12 @@
                 <div>
                     <a href="{% url 'encyclopedia:createNewPage' %}">Create New Page</a>
                 </div>
+                
+                <div>
+                    <a href="{% url 'encyclopedia:randomPage' %}">Random Page</a>
+                </div>
                 {% block nav %}
                 {% endblock %}
-                <div>
-                    Random Page
-                </div>
                 
             </div>
             <div class="main col-lg-10 col-md-9">

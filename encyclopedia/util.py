@@ -1,5 +1,5 @@
 import re
-
+import secrets
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 
@@ -35,3 +35,20 @@ def get_entry(title):
         return f.read().decode("utf-8")
     except FileNotFoundError:
         return None
+    
+
+def isValidPageTitle(pageTitle):
+    if(pageTitle.lower() == "new" or pageTitle.lower() == "random"):
+        return False
+    for title in list_entries():
+        if(pageTitle.lower() == title.lower()):
+            return False
+    
+    return True
+
+def isMethodPost(request):
+    return (request.method == "POST")
+
+def getRandomPageTitle():
+    pageTitles = list_entries()
+    return secrets.choice(pageTitles)
